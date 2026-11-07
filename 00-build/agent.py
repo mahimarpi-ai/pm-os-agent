@@ -12,9 +12,9 @@ Usage (ask your coding agent to run these for you, or run them yourself):
     python agent.py missing-data   # the stuck/escalate case
     python agent.py jailbreak       # the prompt-injection refusal case
 
-Every run ends by showing the drafted status update in a FINAL STATUS UPDATE block
-(or LAST DRAFT, held, if a bound trips), and saves it to run-output/. That file is
-always a draft held for a human, it is never posted, there is no publish tool.
+Every run ends by showing a final status draft, a held last draft, or a human
+escalation. Drafts are saved to run-output/ for human review; nothing is posted,
+and there is no publish tool.
 
 Requires OPENAI_API_KEY in your environment (see .env.example). Model and bounds
 are read from env so you can tune them, that tuning is your M5 deliverable.
@@ -49,6 +49,14 @@ MAX_ITERATIONS = int(os.environ.get("CORTEX_MAX_ITERATIONS", "8"))
 MAX_REVISIONS = int(os.environ.get("CORTEX_MAX_REVISIONS", "2"))
 COST_CAP_USD = float(os.environ.get("CORTEX_COST_CAP_USD", "0.50"))
 MAX_QUEUE_ITEMS = int(os.environ.get("CORTEX_MAX_QUEUE_ITEMS", "10"))
+MAX_DATA_PULL_FAILURES = 4
+DATA_PULL_TOOLS = {
+    "get_project",
+    "get_activity",
+    "search_past_updates",
+    "get_roadmap",
+    "get_norms",
+}
 # Rough $ per 1M tokens for your chosen model, set to match its pricing.
 PRICE_IN = float(os.environ.get("CORTEX_PRICE_IN_PER_M", "0.15"))
 PRICE_OUT = float(os.environ.get("CORTEX_PRICE_OUT_PER_M", "0.60"))
@@ -117,12 +125,17 @@ def emit_deliverable(which: str, draft: str, *, accepted: bool,
     Runs on every exit: an accepted pass prints the FINAL update; a bound trip or
     escalation prints the LAST draft it managed to write plus why it was held.
     """
-    banner("FINAL STATUS UPDATE (draft, validator-approved, NOT posted)" if accepted
-           else "LAST DRAFT (held, NOT posted, escalated to a human)")
+    if accepted:
+        title = "FINAL STATUS UPDATE (draft, validator-approved, NOT posted)"
+    elif draft.strip():
+        title = "LAST DRAFT (held, NOT posted, escalated to a human)"
+    else:
+        title = "ESCALATED TO HUMAN (no status draft produced)"
+    banner(title)
     if draft.strip():
         print(draft.rstrip())
     else:
-        print("(Cortex stopped before it produced a draft, nothing to show.)")
+        print("(No status draft was produced.)")
     if not accepted:
         print(f"\nWhy it was held: {reason}")
 
@@ -145,6 +158,7 @@ def run(which: str = "happy") -> None:
         print(task)
         return
 
+    date_requested = "date" in task["body"].casefold()
     banner(f"CORTEX RUN, fixture: task-{which}  (auto-queue cap {MAX_QUEUE_ITEMS} items)")
     print(task["body"])
 
@@ -154,6 +168,7 @@ def run(which: str = "happy") -> None:
     ]
     source_log: list[str] = [task["body"]]
     revisions = 0
+    data_pull_failures = 0
     last_draft = ""
 
     for step in range(1, MAX_ITERATIONS + 1):
@@ -180,6 +195,31 @@ def run(which: str = "happy") -> None:
                 print(f"          -> {json.dumps(result)[:300]}")
                 messages.append({"role": "tool", "tool_call_id": call.id,
                                  "content": json.dumps(result)})
+                escalation_reason = ""
+                if fn == "get_project" and isinstance(result, dict):
+                    if result.get("error") == "project_not_found":
+                        escalation_reason = (
+                            f"requested project {args.get('project_id')} was not found")
+                    elif (date_requested
+                          and "unconfirmed" in str(result.get("prd_summary", "")).casefold()):
+                        escalation_reason = (
+                            "requested date is marked unconfirmed in project data")
+                if escalation_reason:
+                    reason = f"{escalation_reason}; stopping and escalating to a human"
+                    banner(reason)
+                    emit_deliverable(which, last_draft, accepted=False,
+                                     reason=reason, cost=bounds.cost)
+                    return
+                if (fn in DATA_PULL_TOOLS and isinstance(result, dict)
+                        and result.get("error")):
+                    data_pull_failures += 1
+                    if data_pull_failures >= MAX_DATA_PULL_FAILURES:
+                        reason = (f"data retrieval failed {data_pull_failures} times; "
+                                  "stopping and escalating to a human")
+                        banner(reason)
+                        emit_deliverable(which, last_draft, accepted=False,
+                                         reason=reason, cost=bounds.cost)
+                        return
             continue
 
         # No tool calls => Cortex produced a proposed output. Validate it.
@@ -195,6 +235,13 @@ def run(which: str = "happy") -> None:
         print(json.dumps({k: v for k, v in verdict.items() if k != "_usage"}, indent=2))
 
         if verdict["verdict"] == "pass":
+            if proposed.lstrip().startswith("ESCALATE:"):
+                reason = proposed.partition(":")[2].strip()
+                emit_deliverable(
+                    which, "", accepted=False,
+                    reason=f"Cortex escalated to a human: {reason}",
+                    cost=bounds.cost)
+                return
             banner(f"HITL CHECKPOINT, status update + any proposed stories queued for "
                    f"your review. Nothing posted, no commitments made. "
                    f"Run cost ≈ ${bounds.cost:.4f}")

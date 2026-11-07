@@ -9,25 +9,29 @@
 
 ## 1. Trigger & loop type
 
-**Chosen type:** _heartbeat · cron · hook · goal_
+**Chosen type:** Hook — triggered when a PM asks for a status draft.
 
-_Why this type? (e.g. a Monday-morning cron that assembles the weekly update, plus a hook on a new PRD to propose stories.)_
+**Why:** It should only be triggered when a PM asks for it.
+
+**Why not the alternatives:** No heartbeat or cron because there is no periodic run; goal describes the work, not the trigger.
+
+**Deduplication:** Before creating a draft, check whether the same draft already exists; if it does, do not create it again.
 
 ## 2. Goal / definition of done
 
-_What outcome is this loop responsible for? For a goal loop, what validation says "done"? (e.g. a status update grounded in real activity, queued for review, nothing posted.)_
+A grounded status draft is created and sent to a human for review. It must never be posted without human review.
 
 ## 3. Stop conditions
 
 | Condition | What it looks like | What happens |
 |---|---|---|
-| **Success** | _…_ | _…_ |
-| **Stuck / give up** | _…_ | _escalate / log / halt_ |
-| **Escalate to human** | _…_ | _HITL checkpoint (from agent-line-map)_ |
+| **Success** | A grounded draft has been created and sent to a human for review. | Stop successfully. |
+| **Stuck / give up** | Four data-pull attempts fail for other retrieval errors. | Stop and log the failure. |
+| **Escalate to human** | The requested project is not found, a requested date is explicitly marked unconfirmed in project data, or a completed draft is awaiting review. | Stop and escalate missing data/date questions; queue completed drafts for human review and never post automatically (HITL checkpoint). |
 
 ## 4. State
 
-_What persists across iterations, and what's the scope? (e.g. per-project context and last week's update; no cross-project confidential leakage.)_
+Within a run, track what has been added to or removed from the draft between iterations. Keep this state scoped to the current project and run.
 
 ## 5. The five things a loop can lean on
 
@@ -35,11 +39,11 @@ _`state` is always-on. `connectors` only if you already have one wired (e.g. a J
 
 | Component | For Cortex |
 |---|---|
-| **Work tree** (isolated workspace per run, a git worktree) | _…_ |
-| **Skills** (reusable capabilities) | _…_ |
-| **Plugins / connectors** (tools & access, optional if you don't have one yet) | _…_ |
-| **Subagents** (independent check when the loop can't grade itself) | _placeholder → M3 orchestration-map.md_ |
-| **State tracking** | _…_ |
+| **Work tree** (isolated workspace per run, a git worktree) | Not needed yet; it may be useful in the ideal case. |
+| **Skills** (reusable capabilities) | Not needed yet. |
+| **Plugins / connectors** (tools & access, optional if you don't have one yet) | None needed yet; current tools use local fixtures, with no live connector wired. |
+| **Subagents** (independent check when the loop can't grade itself) | Not needed yet; existing tools retrieve information and the critic reviews outputs. |
+| **State tracking** | Track draft additions and removals between iterations within the current project and run. |
 
 > Context plan (M4) and the hand-off to bounds & evals (M5) come in later modules, you'll add them to their own deliverables then, not here.
 
