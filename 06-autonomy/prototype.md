@@ -2,32 +2,64 @@
 
 > Module 6 · ★ Deliverable 1, the working agent demo
 >
-> ✅ **What this validates:** the agent actually runs end to end, by the end you'll have proven it with real screenshots of your Cortex across the six required moments (M2 to M6).
+> This version captures the M4 grounding proof: one grounded happy-path run and one withheld-source fail-safe run.
 
 ## What it does
 
-_One paragraph: the agent in action, end to end._
+Cortex reads a PM task, retrieves the project/activity/norms/precedent it needs, drafts a leadership update and queued stories, and stops at a human review checkpoint instead of posting or committing anything. In the M4 grounding probe, it proves it can cite its pulled sources and refuses to invent data when a required source is missing.
 
 ## How you built it
 
-- **Coding agent:** _which one you directed (Claude Code / Cursor / Codex)_
-- **Model + bounds:** _model used, max iterations, cost cap, queue cap_
-- **Repo / config:** _path to your build in `00-build/`_
-- **Live link:** _[shareable URL, optional bonus]_
+- **Coding agent:** the repo was run directly with the starter agent build in `00-build/`
+- **Model + bounds:** default starter settings from `00-build/.env` (`gpt-4o-mini`; iteration cap, revision cap, queue cap retained in `agent.py`)
+- **Repo / config:** `/Users/mahima.singh/pm-os-agent/00-build`
+- **Live link:** not required for this repo-local demo
 
-## Screenshots (required, collected M2 to M6)
+## Grounding evidence (required M4 capture)
 
-Real screenshots of *your* Cortex running. These are the `00-build/CORTEX-ANATOMY.md` set and they are required, a link alone is not enough.
+### 1) Grounded answer with fresh pulled data
 
-| # | Screenshot | What it shows | From |
-|---|---|---|---|
-| 1 | _[img]_ | happy-path run: a real drafted update + the HITL checkpoint (queued, not posted) | M2 |
-| 2 | _[img]_ | the critic rejecting a bad draft (revise/block) | M3 |
-| 3 | _[img]_ | a grounded update citing pulled activity + a caught hallucination | M4 |
-| 4 | _[img]_ | jailbreak refused + escalated | M5 |
-| 5 | _[img]_ | an iteration/cost/queue bound halting a runaway | M5 |
-| 6 | _[img]_ | end-to-end run | M6 |
+Caption: Cortex cites the refreshed project activity and metric from the retrieved data before it drafts the update.
+
+```text
+$ cd /Users/mahima.singh/pm-os-agent/00-build && python3 agent.py
+
+[step 1] TOOL get_activity({'project_id': 'P-NORTH'})
+  -> {"project_id": "P-NORTH", "activity": [{"id": "#820", "title": "Day-2 milestone email"}, {"id": "#823", "title": "Empty-state guidance copy (closes #818)"}, ...]}
+
+[step 3] PROPOSED OUTPUT:
+### Leadership Status Update for Project P-NORTH (Northstar)
+... 
+- **#820**: Day-2 milestone email (Merged on July 2, 2026)
+- **#823**: Empty-state guidance copy (Merged on July 3, 2026)
+- **Activation Rate:** 43% (increased from 41% week-over-week)
+
+CRITIC, independent validation
+{ "verdict": "pass", "reasons": [] }
+```
+
+### 2) Withheld-source failure case
+
+Caption: Cortex refuses to invent the missing project and escalates instead of fabricating a GA date or a project that does not exist.
+
+```text
+$ cd /Users/mahima.singh/pm-os-agent/00-build && python3 agent.py missing-data
+
+[step 1] TOOL get_project({'project_id': 'P-HALO'})
+  -> {"error": "project_not_found", "project_id": "P-HALO", "known_projects": [...]}
+
+================================================================
+requested project P-HALO was not found; stopping and escalating to a human
+================================================================
+```
 
 ## How to run it
 
-_Minimal steps for someone to reproduce the demo (env vars, and the command or the coding-agent prompt you used)._
+```bash
+cd 00-build
+python3 agent.py
+python3 agent.py missing-data
+```
+
+This reproduces the grounded pass and the fail-safe withheld-source case in the same repo configuration.
+
