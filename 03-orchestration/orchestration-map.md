@@ -1,47 +1,75 @@
-# Orchestration Map: Cortex PM Chief-of-Staff Agent
+# Orchestration Map
 
-> Module 3 · Orchestration & Subagents, ★ Deliverable 3
->
-> ✅ **What this validates:** nothing advances unchecked, by the end you'll have proven a justified topology, a roster, and a validator with a defined fail action.
->
-> Builds on your M2 Loop Spec. Only split one agent into a team when there's a real reason, coordination has a cost.
+## 1. Why split / why not
 
-## 1. Why split? (or why not)
+Cortex should be split into a short team because the strongest reason is the independent validator. The drafter is responsible for reading the task, pulling project context, and writing the leadership update and backlog story proposal. That same agent is also the one most likely to overstate progress or invent a number, a date, or a risk. A second agent with a separate prompt and a separate call is the cleanest way to check whether the output is grounded in the actual project activity and source data before it reaches the PM.
 
-_Run the default-to-simple check. Do you actually need subagents/a fleet? What's the real reason (separation of concerns · parallelism · independent validation · context-window pressure)? If not, say so and stop here._
+This is not a large fleet. There is no need for parallelism or a large specialist team for the current lab. The real split is a single critic that exists to catch the draft's blind spots.
 
 ## 2. Topology
 
-**Pattern:** _single+subagents · sequential · parallel+aggregate · hierarchical_
-
-```
-[ simple text diagram of the flow ]
-e.g.  task → [Research] + [GitHub/Jira reader] → [Writer] → [Critic ✓] → human checkpoint → queued
+```text
+[Inbound PM task]
+    ↓
+[Cortex: reads task + pulls project data + drafts update + stories]
+    ↓
+[Validator / Critic]
+    ├─ fail → back to Cortex (revise, up to cap)
+    ├─ fail after cap → escalate to human
+    └─ pass → [PM review checkpoint] → queued for approval
 ```
 
 ## 3. Roster
 
-| Agent / subagent | Responsibility | Runs which Loop Spec |
+| Agent | Responsibility | Runs from |
 |---|---|---|
-| _Chief-of-staff (Cortex)_ | _orchestrates + assembles the update_ | _M2 loop_ |
-| _Research subagent_ | _pulls competitive / market context_ | _research loop_ |
-| _GitHub/Jira reader_ | _summarizes recent activity_ | _read loop_ |
-| _Critic / Validator_ | _checks the draft before it advances_ | _validation loop_ |
-| _…_ | | |
+| Cortex | Reads the request, pulls context, drafts update, proposes backlog stories | Loop Spec / M2 |
+| Critic | Validates the draft for traceability, invented claims, and policy compliance | Module 3 validator |
+| PM | Reviews approved draft and decides whether to accept or adjust | Human decision point |
 
-## 4. Communication & hand-offs
+## 4. Hand-offs
 
-_What passes between the parts? Any protocol (MCP / A2A, optional, note if used)._
+The drafter hands off three things to the critic:
+- the proposed draft
+- the source log / evidence used to support it
+- the task context and any tool outputs that were pulled
+
+This is a plain in-process hand-off, not a formal MCP/A2A integration. The point is that the validator sees the finished output and the tools/data it relied on, but not the same drafting context or hidden assumptions that may have caused the draft to drift.
 
 ## 5. The validator
 
-- **What the critic checks:** _grounded claims · norms compliance · no confidential leak · nothing posted/committed_
-- **Fail action:** _what happens when it fails (retry · revise · escalate to human)_
+The critic is responsible for checking whether the draft is traceable and honest. It should reject any status update that:
+- cites a project, a metric, or a date that the data does not support
+- invents progress, risk, or delivery status without evidence
+- makes commitments or promises outside the agent line
+- adds unconfirmed dates or firm launch commitments
+- claims an item is safe or green when the source data does not support it
 
-## 6. State: shared vs isolated
+Fail-action: revise and return the draft to Cortex, up to a hard revision cap.
+Revision cap: 3 revisions, then escalate to the human instead of looping forever.
+Pass-action: if the critic passes, the draft advances to the PM review checkpoint. It does not auto-send or auto-post anything.
 
-_What's shared across the fleet vs kept isolated per subagent (carry from M2)._
+## 6. Shared vs isolated state
+
+Shared state:
+- PM task brief
+- project data pulled by Cortex
+- recent activity / issue list / PRs / norms / roadmap
+- draft text itself
+
+Isolated state:
+- the critic's reasoning and fail notes should remain separate from the drafter's loop
+- the critic cannot inherit the drafter's same prompt assumptions or hidden context
+- the validator must not be allowed to “help” the drafter by reusing the same internal chain-of-thought or the same working memory
+
+This separation is the point of the design. The critic is useful precisely because it is not the same model state as the drafter.
 
 ## 7. Cost & latency budget
 
-_Coordination has a price. Rough token/latency cost of the fleet vs a single agent. (Forward-link to M5 bounds.)_
+The validator is an extra model call and a bounded retry loop. In a PM workflow, that is a worthwhile tradeoff because it prevents a human from reading an update that was invented, over-optimistic, or not grounded in the project data. The budget is intentionally strict: one validation round is normal, and a revision cap stops the system from looping forever. For risky drafts, we can spend a bit more to catch a bad proposal before it reaches the PM.
+
+In this lab, the design is a high-cost validation budget: the critic adds a second model pass, plus a strict cap on revision loops, so the PM gets a grounded output without paying for infinite rework.
+
+## Final decision
+
+The agent is a small team, but only in the narrow sense that matters: one drafter and one validator. The drafter owns the task and the draft; the critic acts as a hard gate. The PM remains the final human decision-maker, and nothing is posted or committed without human review.
