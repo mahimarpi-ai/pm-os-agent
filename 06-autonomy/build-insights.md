@@ -6,16 +6,16 @@
 
 ## Friction
 
-_Where did the build fight you? (Loop stop conditions? Context budget? The validator? Bounds?)_
+The critic's repeated rejection/revision loop and unclear reasons made it hard to know what to change or when to stop.
 
 ## Learning
 
-_The two or three things you now understand about shipping agents that you didn't before the course._
+I need to think about bounds before shipping agents. A critic that repeatedly rejects drafts without clear reasons can block progress, so I'd question its usefulness in this form.
 
 ## Aha moment
 
-_The single insight that changed how you'd design your next agent._
+An agent can go rogue, so we need boundaries to stop that from happening.
 
 ## What you'd do differently
 
-_If you rebuilt Cortex from scratch, what changes?_
+I'd simplify Cortex and avoid adding so many conditions and settings.

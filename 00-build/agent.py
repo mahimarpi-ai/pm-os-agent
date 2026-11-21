@@ -492,6 +492,93 @@ def _supported_status_colors(sources: list[dict]) -> set[str]:
     return colors
 
 
+ISSUE_IMPACT_CLAIM_PATTERN = re.compile(
+    r"\b(?:could|may|might|will|would|can)\s+(?:potentially\s+)?"
+    r"(?:affect|impact|influence|delay|block)\b"
+    r"|\b(?:blocks?|blocking|delays?|delayed|affects?|impacts?)\s+"
+    r"(?:the\s+)?(?:delivery|release|launch|timeline|milestone)\b"
+    r"|\b(?:could|may|might|will|would|can)\s+(?:potentially\s+)?"
+    r"(?:be\s+)?(?:a\s+)?(?:delivery\s+)?(?:risk|blocker)\b"
+    r"|\b(?:is|are|poses?|creates?)\s+(?:a\s+)?(?:potential\s+)?"
+    r"(?:delivery\s+)?(?:risk|blocker)\b",
+    re.IGNORECASE,
+)
+NO_IMPACT_EVIDENCE_PATTERN = re.compile(
+    r"\b(?:no|none|unknown|not\s+(?:specified|indicated|documented|reported))\b",
+    re.IGNORECASE,
+)
+NEGATED_IMPACT_CLAIM_PATTERN = re.compile(
+    r"\bno\s+evidence\s+(?:that|of)\b.{0,60}"
+    r"\b(?:affect|impact|influence|delay|block)\w*\b"
+    r"|\b(?:does|do|did)\s+not\s+(?:currently\s+)?"
+    r"(?:affect|impact|influence|delay|block)\w*\b"
+    r"|\b(?:no|not|without)\s+"
+    r"(?:(?:current|known|identified|documented)\s+)*(?:an?\s+)?"
+    r"(?:delivery\s+)?(?:impact|risk|blocker)\b",
+    re.IGNORECASE,
+)
+
+
+def _normal_issue_risk_reasons(draft: str, sources: list[dict]) -> list[str]:
+    unsupported_issues = set()
+    for source in sources:
+        if source.get("tool") != "get_activity":
+            continue
+        result = source.get("result")
+        if not isinstance(result, dict):
+            continue
+        for issue in result.get("activity", []):
+            if (not isinstance(issue, dict)
+                    or issue.get("type") != "issue_open"
+                    or str(issue.get("severity", "")).casefold() != "normal"):
+                continue
+            issue_id = str(issue.get("id", "")).strip()
+            if not issue_id:
+                continue
+            delivery_impact = str(issue.get("delivery_impact", "")).strip()
+            explicit_impact = bool(delivery_impact) and not (
+                NO_IMPACT_EVIDENCE_PATTERN.search(delivery_impact))
+            if not explicit_impact and not ISSUE_IMPACT_CLAIM_PATTERN.search(
+                    json.dumps(issue, ensure_ascii=True, default=str)):
+                unsupported_issues.add(issue_id)
+
+    if not unsupported_issues:
+        return []
+
+    risk_section_issues = set()
+    in_risk_section = False
+    for line in draft.splitlines():
+        stripped = line.strip()
+        heading = None
+        if re.match(r"^#{1,6}\s+", stripped):
+            heading = re.sub(r"^#{1,6}\s+", "", stripped).rstrip(":").strip()
+        elif stripped.startswith("**") and stripped.endswith("**"):
+            heading = stripped[2:-2].rstrip(":").strip()
+        if heading is not None:
+            in_risk_section = bool(re.search(
+                r"\b(?:risks?|blockers?)\b", heading, re.IGNORECASE))
+        if in_risk_section:
+            risk_section_issues.update(
+                issue_id for issue_id in unsupported_issues
+                if re.search(rf"(?<![\w]){re.escape(issue_id)}(?!\w)", line)
+            )
+
+    impact_claim_issues = set()
+    for paragraph in re.split(r"\n\s*\n", draft):
+        positive_claim_text = NEGATED_IMPACT_CLAIM_PATTERN.sub("", paragraph)
+        if not ISSUE_IMPACT_CLAIM_PATTERN.search(positive_claim_text):
+            continue
+        impact_claim_issues.update(
+            issue_id for issue_id in unsupported_issues
+            if re.search(rf"(?<![\w]){re.escape(issue_id)}(?!\w)", paragraph)
+        )
+
+    return [
+        f"normal-severity issue {issue_id} is framed as a risk without source-backed impact"
+        for issue_id in sorted(risk_section_issues | impact_claim_issues)
+    ]
+
+
 def draft_provenance_reasons(draft: str, sources: list[dict]) -> list[str]:
     evidence = json.dumps(sources, ensure_ascii=True, default=str)
     reasons = []
@@ -538,6 +625,7 @@ def draft_provenance_reasons(draft: str, sources: list[dict]) -> list[str]:
                 and color not in supported_colors):
             reasons.append(f"status color {color!r} is not supported by trusted project results")
 
+    reasons.extend(_normal_issue_risk_reasons(draft, sources))
     return reasons
 
 

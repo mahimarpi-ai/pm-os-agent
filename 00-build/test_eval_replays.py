@@ -289,6 +289,76 @@ class EvalReplayTests(unittest.TestCase):
         self.assertIn("HITL CHECKPOINT", output)
         self.assertEqual(len(completions.requests), 5)
 
+    def test_normal_issue_risk_claim_is_rejected_then_neutral_revision_passes(self):
+        responses = [
+            model_response(tool_calls=[
+                tool_call("get_project", {"project_id": "P-NORTH"}, "call-1"),
+                tool_call("get_activity", {"project_id": "P-NORTH"}, "call-2"),
+            ]),
+            model_response(content=(
+                "Northstar is on track.\n\n"
+                "## Risks/Blockers\n"
+                "Issue #825 could influence future activation metrics."
+            )),
+            critic_response(),
+            model_response(content=(
+                "Northstar is on track.\n\n"
+                "## Open Issues\n"
+                "Issue #825 is normal severity and needs analytics review. "
+                "There is currently no evidence that it impacts delivery."
+            )),
+            critic_response(),
+        ]
+        output, completions, _ = execute_replay("happy", responses)
+
+        self.assertIn(
+            "normal-severity issue #825 is framed as a risk without source-backed impact",
+            output,
+        )
+        self.assertIn("FAIL-ACTION: critic rejected", output)
+        self.assertIn("revision 1/2", output)
+        self.assertIn("HITL CHECKPOINT", output)
+        self.assertEqual(len(completions.requests), 5)
+
+    def test_source_documented_normal_issue_impact_can_be_reported_as_risk(self):
+        sources = [{
+            "tool": "get_activity",
+            "result": {
+                "project_id": "P-NORTH",
+                "activity": [{
+                    "type": "issue_open",
+                    "id": "#901",
+                    "title": "Analytics review",
+                    "severity": "normal",
+                    "delivery_impact": "blocks release",
+                }],
+            },
+        }]
+        draft = "## Risks/Blockers\nIssue #901 may delay release."
+
+        self.assertEqual(agent.draft_provenance_reasons(draft, sources), [])
+
+    def test_normal_issue_with_explicitly_absent_impact_is_not_source_backed_risk(self):
+        sources = [{
+            "tool": "get_activity",
+            "result": {
+                "project_id": "P-NORTH",
+                "activity": [{
+                    "type": "issue_open",
+                    "id": "#901",
+                    "title": "Analytics review",
+                    "severity": "normal",
+                    "delivery_impact": "No current delivery impact",
+                }],
+            },
+        }]
+        draft = "## Risks/Blockers\nIssue #901 may delay release."
+
+        self.assertIn(
+            "normal-severity issue #901 is framed as a risk without source-backed impact",
+            agent.draft_provenance_reasons(draft, sources),
+        )
+
     def test_northstar_happy_path_uses_scoped_tools_and_stops_at_hitl(self):
         get_project = Mock(wraps=agent.tools.get_project)
         get_activity = Mock(wraps=agent.tools.get_activity)

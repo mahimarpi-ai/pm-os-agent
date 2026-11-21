@@ -6,41 +6,43 @@
 
 ## Autonomy Dial by segment
 
-_Autonomy is a product decision per user, not one global setting._
+Autonomy is a product decision per user, not one global setting.
 
 | Segment | Desired autonomy | Why |
 |---|---|---|
-| _Cautious PM ("Tesla driver")_ | _supervised_ | _wants to review every update before it goes out_ |
-| _High-trust team lead ("Waymo passenger")_ | _bounded-autonomous_ | _happy to let the weekly update assemble itself_ |
+| Seasoned PM / operations user | supervised | Final review and posting stays with a human. |
+| New engineering lead | assisted | Cortex asks clarification questions; the lead answers; Cortex drafts; the human posts. |
 
 ## Trust Ladder
 
-- **Current rung:** _shadow · assisted · supervised · bounded-autonomous · autonomous_
-- **Eval gate to reach the next rung:** _which M5 evals must pass, at what threshold_
-- **Incident record so far:** _…_
+- **Current rung:** assisted. "To ensure that it does not create incorrect updates."
+- **Eval gate to reach the next rung:** all five offline replay cases pass on every change; then at least 95% pass on EV-1 through EV-4 across at least 20 assisted runs over four consecutive weeks, with zero unsafe EV-5 actions.
+- **Incident record so far:** clean means zero unauthorized actions or confidential exposures; 100% of incidents and near-misses logged with run ID, M5 eval, timestamp, trigger, containment, owner, and resolution; no unresolved incidents at the end of the four-week window.
 
 ## Deployment plan
 
-- **Runtime:** _managed agent platform · serverless · self-hosted, and why_
-- **Operator / on-call owner:** _who owns it in production_
-- **Rollback:** _how you turn it off / revert_
-- **Monitoring:** _the dashboard + the signals you watch_
+- **Runtime:** planned serverless, event-triggered Hook. It runs only when a PM requests a status draft, so it does not need an always-on worker. The prototype still uses local fixtures; production hosting and a live connector are not wired.
+- **Operator / on-call owner:** Mahima Singh.
+- **Escalation path:** escalate to Mahima Singh; the draft remains unchanged until she reviews it. If she is unavailable, disable the Hook and hold drafts; do not enable production until a backup owner and alert destination are configured.
+- **Rollback:** disable the Hook, set the local KILL switch, and revert the prompt/config. Production pause and credential revocation remain external and unwired.
+- **Monitoring:** eval pass rate, escalation rate, cost per run, and trust incidents.
 
 ## ROI metrics (beyond adoption & tokens)
 
 | Metric | Target |
 |---|---|
-| _Task completion rate_ | _…_ |
-| _Time saved / cost-to-serve_ | _…_ |
-| _Trust incidents_ | _…_ |
+| Outcome | At least 90% of drafts accepted without material rewrite over 20 assisted runs; capture the run ID and human review outcome. |
+| Cost-to-serve | At least 30% lower median time-to-approved-draft than the manual baseline and no more than $0.05 per accepted draft; capture human review timestamps and run cost. |
+| Trust incidents | Zero unauthorized posts or confidential exposures; log 100% of incidents and near-misses with run ID, M5 eval, timestamp, trigger, containment, owner, and resolution. |
 
 ## Widen-autonomy decision rule
 
-_What evidence lets you turn the dial up one notch, stated in advance._
+Move from assisted to supervised only after all five offline replays pass on every change; EV-1 through EV-4 reach at least 95% across at least 20 assisted runs over four consecutive weeks; EV-5 has zero unsafe actions; all three ROI targets are met; no incidents remain unresolved; and Mahima explicitly approves the change.
 
 ## Governance & forward strategy
 
-- **Compliance:** _what data must never enter a prompt; how PII is handled_
-- **Safety:** _which actions stay above the agent line for everyone; kill switch_
-- **Reliability:** _cost/iteration caps; escalate-on-stuck; fallback if the model is down_
-- **Strategy:** _the next segment or capability you'd widen into, and the eval that gates it_
+- **Compliance:** never put secrets, credentials, confidential or embargoed content, or unnecessary PII in a prompt. Minimize PII and redact sensitive data from traces.
+- **Safety:** keep every M1 above-the-line decision human-owned: project retrieval and context selection, draft review, tone and commitment level, risk flags and escalation choices, story prioritization, posting, and company-wide approval. Cortex has no publishing tool.
+- **Kill switch:** the local `00-build/run-output/KILL` marker stops new calls when checked but cannot cancel an in-flight call. Production must be able to disable the Hook and revoke scoped access; that control-plane integration is external and unwired. If the owner is unavailable, keep the Hook disabled and drafts held.
+- **Reliability:** enforce the M5 limits of 8 turns, 90 seconds per run, $0.50 per run, and 2,048 completion tokens; stop and escalate at a limit. A provider-side hard cost cap is required for an absolute billing guarantee. If the model is unavailable, fail closed and use the manual PM workflow.
+- **Strategy:** next, add a live read-only project connector; keep write and post actions unavailable. Before expansion, all five offline replays must pass on every change; EV-1 through EV-4 must reach at least 95% across at least 20 assisted runs over four consecutive weeks; EV-5 must have zero unsafe actions; all ROI targets must be met; connector project-scope and confidential-redaction evals must pass; no incidents may remain unresolved; and Mahima must explicitly approve.
