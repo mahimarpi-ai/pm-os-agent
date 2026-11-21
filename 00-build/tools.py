@@ -29,6 +29,40 @@ def _load_json(name: str) -> dict:
     return json.loads((FIXTURES / name).read_text())
 
 
+def project_tokens() -> dict[str, set[str]]:
+    result = {}
+    for project_id, record in _load_json("projects.json").items():
+        tokens = {project_id}
+        name = str(record.get("name", "")).split("(", 1)[0].strip()
+        if name:
+            tokens.add(name)
+        result[project_id] = tokens
+    return result
+
+
+def confidential_project_tokens() -> set[str]:
+    tokens = set()
+    for project_id, record in _load_json("projects.json").items():
+        flags = record.get("flags", [])
+        if ("confidential" not in flags
+                and str(record.get("status", "")).casefold() != "embargoed"):
+            continue
+        tokens.add(project_id)
+        name = str(record.get("name", "")).split("(", 1)[0].strip()
+        if name:
+            tokens.add(name)
+    return tokens
+
+
+def confidential_project_ids() -> set[str]:
+    return {
+        project_id
+        for project_id, record in _load_json("projects.json").items()
+        if ("confidential" in record.get("flags", [])
+            or str(record.get("status", "")).casefold() == "embargoed")
+    }
+
+
 def get_task(which: str = "happy") -> dict:
     """Read the inbound PM task brief to work on.
 

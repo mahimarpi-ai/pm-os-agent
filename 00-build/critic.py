@@ -6,21 +6,29 @@ The revision cap that stops a critic<->drafter loop lives in `agent.py`.
 from __future__ import annotations
 
 import json
+from typing import Optional
 
 from prompts import CRITIC_SYSTEM
 
 
-def review(client, model: str, proposed_output: str, source_data: str) -> dict:
+def build_messages(proposed_output: str, source_data: str) -> list[dict]:
+    return [
+        {"role": "system", "content": CRITIC_SYSTEM},
+        {"role": "user", "content":
+            f"SOURCE DATA Cortex used:\n{source_data}\n\n"
+            f"CORTEX PROPOSED OUTPUT:\n{proposed_output}"},
+    ]
+
+
+def review(client, model: str, proposed_output: str, source_data: str, *,
+           timeout: Optional[float] = None, max_tokens: int = 2048) -> dict:
     """Return {"verdict": "pass"|"fail", "reasons": [...]} for a proposed output."""
     resp = client.chat.completions.create(
         model=model,
-        messages=[
-            {"role": "system", "content": CRITIC_SYSTEM},
-            {"role": "user", "content":
-                f"SOURCE DATA Cortex used:\n{source_data}\n\n"
-                f"CORTEX PROPOSED OUTPUT:\n{proposed_output}"},
-        ],
+        messages=build_messages(proposed_output, source_data),
         response_format={"type": "json_object"},
+        max_tokens=max_tokens,
+        timeout=timeout,
     )
     usage = resp.usage
     try:
