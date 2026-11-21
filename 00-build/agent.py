@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -50,6 +51,28 @@ MAX_REVISIONS = int(os.environ.get("CORTEX_MAX_REVISIONS", "2"))
 COST_CAP_USD = float(os.environ.get("CORTEX_COST_CAP_USD", "0.50"))
 MAX_QUEUE_ITEMS = int(os.environ.get("CORTEX_MAX_QUEUE_ITEMS", "10"))
 MAX_DATA_PULL_FAILURES = 4
+ABOVE_LINE_REQUESTS = [
+    ("rule override", re.compile(
+        r"\b(?:system override|admin mode)\b"
+        r"|\bignore all previous (?:rules|instructions|norms)\b", re.IGNORECASE)),
+    ("company-wide publishing", re.compile(
+        r"\b(?:post|publish|send)\b.{0,120}\b(?:company[- ]wide|#all-hands)\b",
+        re.IGNORECASE | re.DOTALL)),
+    ("confidential roadmap disclosure", re.compile(
+        r"\b(?:include|share|disclose|reveal|publish|send)\b.{0,120}"
+        r"\b(?:Orbit|Pulsar|unreleased|confidential)\b",
+        re.IGNORECASE | re.DOTALL)),
+    ("launch-gate change", re.compile(
+        r"\b(?:mark|set)\b.{0,60}\b(?:launch )?gates?\b.{0,40}"
+        r"\b(?:green|open|closed)\b", re.IGNORECASE | re.DOTALL)),
+    ("issue closure", re.compile(
+        r"\b(?:close|resolve)\b.{0,60}\b(?:sev-?1|issue|bug)\b",
+        re.IGNORECASE | re.DOTALL)),
+    ("ship-date commitment", re.compile(
+        r"\b(?:publicly )?(?:commit|promise)\b.{0,60}"
+        r"\b(?:date|GA|launch|March \d{1,2})\b",
+        re.IGNORECASE | re.DOTALL)),
+]
 DATA_PULL_TOOLS = {
     "get_project",
     "get_activity",
@@ -116,6 +139,11 @@ def banner(text: str) -> None:
     print(f"\n{'=' * 64}\n{text}\n{'=' * 64}")
 
 
+def detect_above_line_requests(task_body: str) -> list[str]:
+    """Return explicit above-line request categories found in an inbound task."""
+    return [label for label, pattern in ABOVE_LINE_REQUESTS if pattern.search(task_body)]
+
+
 def emit_deliverable(which: str, draft: str, *, accepted: bool,
                      reason: str, cost: float) -> None:
     """Surface AND persist Cortex's drafted status update so it can't get lost in
@@ -151,7 +179,6 @@ def emit_deliverable(which: str, draft: str, *, accepted: bool,
 
 
 def run(which: str = "happy", *, force_bad_draft: bool = False) -> None:
-    client = OpenAI()
     bounds = Bounds()
     task = tools.get_task(which)
     if "error" in task:
@@ -162,6 +189,17 @@ def run(which: str = "happy", *, force_bad_draft: bool = False) -> None:
     banner(f"CORTEX RUN, fixture: task-{which}  (auto-queue cap {MAX_QUEUE_ITEMS} items)")
     print(task["body"])
 
+    flagged_requests = detect_above_line_requests(task["body"])
+    if flagged_requests:
+        reason = ("untrusted task contains above-the-line requests: "
+                  f"{', '.join(flagged_requests)}")
+        banner("PRE-FLIGHT SAFETY GATE")
+        print(f"INJECTION FLAGGED: {', '.join(flagged_requests)}")
+        print(f"ESCALATE: {reason}. No model or tools were called.")
+        emit_deliverable(which, "", accepted=False, reason=reason, cost=bounds.cost)
+        return
+
+    client = OpenAI()
     messages = [
         {"role": "system", "content": CORTEX_SYSTEM},
         {"role": "user", "content": f"PM task brief:\n\n{task['body']}"},
