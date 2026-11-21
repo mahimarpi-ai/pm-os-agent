@@ -60,7 +60,8 @@ _On macOS, use `python3` if `python` isn't found. The trace prints to the termin
 > Explain how the critic in `00-build/critic.py` and `CRITIC_SYSTEM` in
 > `prompts.py` checks Cortex's draft before a human sees it. Tighten the critic so it
 > also verifies [my checks], and cap revisions so it escalates instead of looping.
-> Then give me a run where the critic *rejects* an output, and screenshot it.
+> Run `python agent.py critic-demo` for a deliberately invalid first draft, then show
+> the rejection, its reasons, the revision fail-action, and the before/after diff.
 
 > Sketch how I'd add a specialist subagent (e.g. a research agent or a GitHub/Jira
 > reader) that Cortex delegates to, keeping each one bounded. Show me where it would

@@ -24,8 +24,23 @@ def review(client, model: str, proposed_output: str, source_data: str) -> dict:
     )
     usage = resp.usage
     try:
-        verdict = json.loads(resp.choices[0].message.content)
+        parsed = json.loads(resp.choices[0].message.content)
     except (json.JSONDecodeError, TypeError):
-        verdict = {"verdict": "fail", "reasons": ["critic returned unparseable output"]}
+        parsed = None
+
+    if (not isinstance(parsed, dict)
+            or set(parsed) != {"verdict", "reasons"}
+            or not isinstance(parsed.get("verdict"), str)
+            or parsed["verdict"] not in {"pass", "fail"}
+            or not isinstance(parsed.get("reasons"), list)
+            or not all(isinstance(reason, str) for reason in parsed["reasons"])
+            or (parsed["verdict"] == "fail"
+                and not any(reason.strip() for reason in parsed["reasons"]))):
+        verdict = {
+            "verdict": "fail",
+            "reasons": ["critic returned an invalid verdict; rejecting output"],
+        }
+    else:
+        verdict = {"verdict": parsed["verdict"], "reasons": parsed["reasons"]}
     verdict["_usage"] = {"prompt": usage.prompt_tokens, "completion": usage.completion_tokens}
     return verdict

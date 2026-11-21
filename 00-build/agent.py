@@ -150,7 +150,7 @@ def emit_deliverable(which: str, draft: str, *, accepted: bool,
               f"(for your review, nothing was posted)")
 
 
-def run(which: str = "happy") -> None:
+def run(which: str = "happy", *, force_bad_draft: bool = False) -> None:
     client = OpenAI()
     bounds = Bounds()
     task = tools.get_task(which)
@@ -224,6 +224,13 @@ def run(which: str = "happy") -> None:
 
         # No tool calls => Cortex produced a proposed output. Validate it.
         proposed = msg.content or ""
+        if force_bad_draft:
+            proposed = (
+                "DONE: Northstar is at 99% activation, up from 98%. "
+                "We commit to a GA launch on November 30, 2026."
+            )
+            force_bad_draft = False
+            print("[DEMO] FORCED INTENTIONALLY INVALID DRAFT:")
         last_draft = proposed
         print(f"\n[step {step}] PROPOSED OUTPUT:\n{proposed}")
 
@@ -251,15 +258,16 @@ def run(which: str = "happy") -> None:
 
         if revisions >= MAX_REVISIONS:
             reason = f"validator rejected {MAX_REVISIONS}x (revision cap)"
-            banner(f"REVISION CAP hit ({MAX_REVISIONS}). Escalating to a human "
+            banner(f"FAIL-ACTION: revision cap hit ({MAX_REVISIONS}); escalating to a human "
                    f"instead of looping. Run cost ≈ ${bounds.cost:.4f}")
             emit_deliverable(which, last_draft, accepted=False,
                              reason=reason, cost=bounds.cost)
             return
 
         revisions += 1
-        print(f"\n-> critic rejected; revision {revisions}/{MAX_REVISIONS}")
-        messages.append(msg)
+        print(f"\nFAIL-ACTION: critic rejected; returning draft to Cortex for "
+              f"revision {revisions}/{MAX_REVISIONS}.")
+        messages.append({"role": "assistant", "content": proposed})
         messages.append({"role": "user", "content":
                          "A validator rejected that for these reasons: "
                          f"{verdict['reasons']}. Fix it or escalate."})
@@ -272,4 +280,8 @@ def run(which: str = "happy") -> None:
 
 
 if __name__ == "__main__":
-    run(sys.argv[1] if len(sys.argv) > 1 else "happy")
+    task_name = sys.argv[1] if len(sys.argv) > 1 else "happy"
+    if task_name == "critic-demo":
+        run("happy", force_bad_draft=True)
+    else:
+        run(task_name)
