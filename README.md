@@ -1,110 +1,85 @@
-# Cortex: PM Chief-of-Staff Agent, by Mahima Singh
+# Cortex: PM Chief-of-Staff Agent
 
-> My final project for Product School's **Agentic Loops for PMs** certification. A chief-of-staff agent that turns raw inputs (project state, GitHub/Jira activity, roadmap, past updates) into finished PM work, a leadership status update and a proposed backlog for a human to clear, built loop-first, bounded, grown into a fleet, and shipped up the Trust Ladder.
+**By Mahima Singh · Product School, Agentic Loops for PMs**
 
-This is a **template repo**. Click **Use this template → Create a new repository**, name it `pm-os-agent` (or your own agent's name), and fill in one folder per module as you go.
+Cortex helps a PM prepare a grounded weekly leadership update and a capped set of next-sprint story proposals. It retrieves project and activity evidence, drafts the update, sends it through an independent critic, and stops at human review. Cortex has no publishing tool: nothing is posted automatically.
 
----
+> **Current Trust Ladder rung: assisted.** This is a local-fixture prototype, not a production integration. Proposed stories still need PM validation.
 
-## The story this repo tells
+## Project at a glance
 
-Strategy first, structure second. This repo is the **build journey of one agent, Cortex**, laid out as the exact sequence of decisions a PM makes when shipping an AI agent team. **Each folder is one framework from the course**, in the order you actually use it, and each ends in a **validation point** — a deliverable, a validator, or an eval — that proves the step is sound before you build on the next one.
-
-Read it top to bottom as a narrative:
-
-| # | The move (story beat) | Framework | Folder | What this step validates |
-|---|---|---|---|---|
-| 1 | **Draw the line** — decide what the agent owns vs. what stays human, *before* anything runs | The Agent Line | `01-agent-line/` | Every risky action has a clear owner |
-| 2 | **Make it loop** — turn that hand-off into an agent that fires itself and knows when it's "done" | Loop Engineering | `02-loop-design/` | The agent knows when to run and when to stop ★ |
-| 3 | **Grow the team** — split into a fleet only when there's a real reason, and add a validator | Orchestration | `03-orchestration/` | Nothing advances unchecked ★ |
-| 4 | **Feed it context** — give each run the right memory without leaking or drifting | Context Engineering & Memory | `04-memory-context/` | The agent reasons on the right, safe inputs |
-| 5 | **Bound it & prove it** — design for when it goes sideways, and spec it by writing its evals | Bounds, Trust & Evals | `05-bounds-evals/` | It fails safe and is measured |
-| 6 | **Ship & widen trust** — demo it, reflect, and set how far up the Trust Ladder it may climb | Autonomy & the Trust Ladder | `06-autonomy/` | It runs end-to-end and earns autonomy with evidence ★ |
-
-> **Why the numbers?** The folders keep a leading number so they sort in build order on GitHub; the name after it (`-agent-line`, `-loop-design`, …) is the framework. Number = *when*, name = *what*.
-
----
-
-## How each lab runs: paste the module's `LAB.md` into your AI assistant
-
-Every module folder ships a **`LAB.md`** — a runbook written *for your AI assistant*. Instead of reading a
-guide and filling in a form, you **paste the module's `LAB.md` into your coding agent (Claude Code, Cursor,
-Codex) or a chatbot (ChatGPT, Claude, Gemini)** and it walks you through the lab: it asks for your
-decisions one step at a time, writes the deliverable file, runs Cortex where needed, and commits.
-
-| Module | Paste this into your assistant |
+| | |
 |---|---|
-| M1 | `01-agent-line/LAB.md` |
-| M2 | `02-loop-design/LAB.md` |
-| M3 | `03-orchestration/LAB.md` |
-| M4 | `04-memory-context/LAB.md` |
-| M5 | `05-bounds-evals/LAB.md` |
-| M6 | `06-autonomy/LAB.md` |
+| **Trigger** | A PM requests a status draft for one project (Hook pattern) |
+| **Build** | Copilot SDK in VS Code; runtime and fixtures in [`00-build/`](00-build/) |
+| **Drafter model** | `gpt-4o-mini` |
+| **Critic** | Independent `gpt-4o` review in the recorded M6 run |
+| **Bounds** | 8 turns, 90 seconds, $0.50 estimated per-run cap, 2,048 completion tokens, and at most 10 queued stories |
+| **Data / integrations** | Local fixtures; no live project connector or publishing integration |
+| **Demo link** | None |
 
-A good opener: *"Open `05-bounds-evals/LAB.md` in this repo and walk me through it one step at a time.
-Stop and ask me at every decision."* If your assistant can't read files (plain ChatGPT), paste the
-`LAB.md` contents directly and it will print each block for you to paste into the deliverable file.
+The cost limit uses conservative request reservations; a provider-side hard budget is still needed for an absolute billing guarantee.
 
-> The **prompt pack** in [`00-build/PROMPTS.md`](00-build/PROMPTS.md) is the quick-reference / fallback:
-> the individual prompts the `LAB.md` files use, if you'd rather drive step by step yourself.
+## Final deliverables
 
----
+| Deliverable | Summary |
+|---|---|
+| [Working prototype and run evidence](06-autonomy/prototype.md) | End-to-end behavior, safety cases, and six M2–M6 captures |
+| [M1 · Agent Line Map](01-agent-line/agent-line-map.md) | Human-owned decisions and HITL checkpoints |
+| [M2 · Loop Spec](02-loop-design/loop-spec.md) | Trigger, definition of done, state, and stop conditions |
+| [M3 · Orchestration Map](03-orchestration/orchestration-map.md) | Cortex drafter, separate validator, bounded revision path, and PM review |
+| [M4 · Memory and Context](04-memory-context/memory-and-context.md) | Retrieval and project context strategy |
+| [M5 · Bounds and Evals](05-bounds-evals/bounds-and-evals.md) | Runtime limits, failure modes, and five-case offline replay suite |
+| [M6 · Build Insights](06-autonomy/build-insights.md) | Friction, learning, aha, and what would change |
+| [M6 · Production and Autonomy](06-autonomy/production-and-autonomy.md) | Autonomy dial, Trust Ladder gate, deployment, ROI, and governance |
+| [Final project pitch deck](pitch.html) | Standalone HTML presentation |
 
-## Deliverables at a glance
+## Demo evidence
 
-| # | Deliverable | Module | Status | File |
-|---|---|---|---|---|
-| 1 | **Working agent demo** (real run screenshots; link optional) | Built across labs | ☐ | `06-autonomy/prototype.md` |
-| 2 | **Loop Spec** | M2 | ☐ | `02-loop-design/loop-spec.md` |
-| 3 | **Orchestration Map** | M3 | ☐ | `03-orchestration/orchestration-map.md` |
-| 4 | **Insights: build process** | M6 | ☐ | `06-autonomy/build-insights.md` |
-| 5 | **Bounds, trust & autonomy strategy** | M6 | ☐ | `06-autonomy/production-and-autonomy.md` |
+All six run captures are in [`06-autonomy/`](06-autonomy/):
 
-## The agent in one sentence
+1. [M2 · Happy path](06-autonomy/m2-happy-path.png) — grounded draft and story proposals held for review.
+2. [M3 · Critic rejection](06-autonomy/m3-critic-rejection.png) — rejected revisions reach the cap and escalate.
+3. [M4 · Missing source](06-autonomy/m4-missing-source.png) — missing project stops the run before drafting.
+4. [M5 · Jailbreak preflight](06-autonomy/m5-jailbreak-preflight.png) — prohibited requests flagged before model or tool calls.
+5. [M5 · Iteration cap](06-autonomy/m5-iteration-cap.png) — run halts at the two-turn test cap without producing a draft.
+6. [M6 · End-to-end run](06-autonomy/m6-end-to-end-clean.png) — critic passes; draft and story proposals pause for PM review.
 
-_What does your agent do, for whom, and where is the agent line, what does it decide vs. what stays human?_
+## Human control and trust gate
 
-## Build & demo
+Cortex can retrieve evidence, draft, queue up to 10 story proposals, and request a critic review. Humans retain ownership of context selection, tone and commitments, risk and escalation judgments, story prioritization, final approval, and all posting. The prototype exposes no publish action.
 
-- **How you built it:** _which coding agent (Claude Code / Cursor / Codex) you directed, start in `00-build/`_
-- **Demo link:** _[optional shareable URL]_
-- **Run screenshots:** _required, collected M2 to M6 in `06-autonomy/prototype.md`_
+The planned next rung is **supervised**. Widening requires all five offline replay cases to pass on every change; at least 95% pass on EV-1 through EV-4 across 20 or more assisted runs over four consecutive weeks; zero unsafe EV-5 actions; all three ROI targets below; no unresolved incidents; and explicit owner approval. A clean incident window means zero unauthorized posts and confidential exposures, with every incident and near-miss logged and resolved.
 
-## Where it sits on the Trust Ladder
+## Ship plan and ROI
 
-_shadow · assisted · supervised · bounded-autonomous · autonomous, which rung today, and what eval evidence would let it climb the next one?_
+- **Planned runtime:** serverless, event-triggered Hook; production hosting is not wired.
+- **Owner:** Mahima Singh. If unavailable, the Hook should stay disabled and drafts held until a backup owner and alert destination are configured.
+- **Rollback:** disable the Hook, set the local kill switch, and revert prompt/config. Production pause and credential revocation still need control-plane integration.
+- **Monitoring:** eval pass and escalation rates, cost per run, and trust incidents.
 
----
+| Measure | Target | Capture |
+|---|---|---|
+| Outcome | At least 90% of drafts accepted without material rewrite over 20 assisted runs | Run IDs and human review outcomes |
+| Cost-to-serve | At least 30% lower median time-to-approved-draft than manual baseline, and at most $0.05 per accepted draft | Review timestamps and run cost |
+| Trust incidents | Zero unauthorized posts or confidential exposures; log all incidents and near-misses | Run ID, eval, timestamp, trigger, containment, owner, resolution |
 
-## How to submit
+## Run locally
 
-- Turn the five deliverable files into your final deck (use the **Final Project Deliverables Builder** that ships with the course, it generates `pitch.html` + a clean `README.md` for you, or a tool like Gamma).
-- Submit your own copy to the learning platform within 7 days of your cohort ending.
+From the repository root:
 
-## Repo structure
-
+```bash
+cd 00-build
+python3 agent.py                 # happy path; model-backed run requires a configured API key
+python3 agent.py missing-data    # missing project; stops and escalates
+python3 agent.py jailbreak      # deterministic preflight refusal
+CORTEX_MAX_ITERATIONS=2 python3 agent.py happy  # test the iteration cap
 ```
-pm-os-agent/
-├── README.md                          ← this dashboard
-├── 00-build/                          ← runnable starter: the transparent Cortex agent,
-│   │                                    fixtures, RUNBOOK, PROMPTS, CORTEX-ANATOMY
-│   ├── RUNBOOK.md                     ← open in your coding agent, add a key, run a fixture, screenshot
-│   ├── PROMPTS.md                     ← the prompt pack: what to say to your coding agent
-│   ├── CORTEX-ANATOMY.md              ← the 7 things every submission must show
-│   ├── agent.py · critic.py · tools.py · prompts.py
-│   └── fixtures/                      ← mock PM tasks + project/roadmap/updates/norms data
-├── 01-agent-line/
-│   └── agent-line-map.md              ← M1: what to hand to the agent (above vs below the line)
-├── 02-loop-design/
-│   └── loop-spec.md                   ← M2: the Loop Spec                 ★ Deliverable 2
-├── 03-orchestration/
-│   └── orchestration-map.md           ← M3: your fleet + the validator     ★ Deliverable 3
-├── 04-memory-context/
-│   └── memory-and-context.md          ← M4: retrieve-vs-long-context + your PM brain
-├── 05-bounds-evals/
-│   └── bounds-and-evals.md            ← M5: hard bounds + trajectory evals
-└── 06-autonomy/
-    ├── prototype.md                   ← demo + screenshots                ★ Deliverable 1
-    ├── build-insights.md              ← friction · learning · aha         ★ Deliverable 4
-    └── production-and-autonomy.md     ← dial · Trust Ladder · governance  ★ Deliverable 5
-```
+
+Runs use the local fixtures in [`00-build/fixtures/`](00-build/fixtures/). Drafts are held for human review; no publishing tool is available. See the [runbook](00-build/RUNBOOK.md) for setup and additional bound-trip scenarios.
+
+## Known gaps before production
+
+- Add a live, read-only project connector and pass project-scope and confidential-redaction evals.
+- Configure a provider-side hard spend limit, production kill/rollback controls, scoped JIT authorization, alerts, and a backup on-call owner.
+- Have a PM validate the proposed stories and review draft outcomes in assisted runs before considering a higher Trust Ladder rung.

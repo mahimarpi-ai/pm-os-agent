@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cortex — PM Chief-of-Staff Agent</title>
+  <style>
+    :root {
+      --ink: #17212b;
+      --muted: #607081;
+      --paper: #f5f7f8;
+      --white: #fff;
+      --green: #1f7a5a;
+      --green-soft: #e7f3ed;
+      --gold: #d6a84b;
+      --blue: #315c80;
+      --line: #dbe3e8;
+      --red: #a34b45;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #dfe5e8;
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .deck { max-width: 1180px; margin: 0 auto; background: var(--paper); }
+    .slide {
+      min-height: 720px;
+      padding: 64px 72px;
+      border-bottom: 1px solid var(--line);
+      position: relative;
+      background: var(--paper);
+      page-break-after: always;
+    }
+    .slide.hero {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background:
+        radial-gradient(circle at 82% 18%, rgba(49,92,128,.13), transparent 22%),
+        linear-gradient(135deg, #f8faf9 0%, #edf3f1 100%);
+    }
+    .eyebrow {
+      color: var(--green);
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 16px 0 20px;
+      max-width: 900px;
+      font-size: 64px;
+      line-height: 1.03;
+      letter-spacing: -.035em;
+    }
+    h2 {
+      margin: 8px 0 32px;
+      font-size: 42px;
+      line-height: 1.08;
+      letter-spacing: -.025em;
+    }
+    h3 { margin: 0 0 10px; font-size: 20px; }
+    p, li { font-size: 18px; line-height: 1.55; }
+    .lead { max-width: 820px; font-size: 25px; line-height: 1.42; color: #3d4d5a; }
+    .meta { display: flex; gap: 28px; color: var(--muted); font-size: 15px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .card {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 24px;
+    }
+    .card.accent { border-top: 5px solid var(--green); }
+    .card.warn { border-top: 5px solid var(--gold); }
+    .card.blue { border-top: 5px solid var(--blue); }
+    .metric { font-size: 38px; font-weight: 850; letter-spacing: -.03em; color: var(--green); }
+    .metric-label { color: var(--muted); font-size: 14px; font-weight: 700; text-transform: uppercase; }
+    .flow {
+      display: grid;
+      grid-template-columns: 1fr 34px 1fr 34px 1fr 34px 1fr;
+      align-items: center;
+      gap: 8px;
+    }
+    .flow .card { height: 168px; }
+    .arrow { color: var(--green); font-size: 28px; text-align: center; }
+    ul { margin: 10px 0 0; padding-left: 22px; }
+    li { margin: 4px 0; }
+    table { width: 100%; border-collapse: collapse; background: var(--white); }
+    th, td { padding: 14px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: #edf2f4; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+    td { font-size: 15px; line-height: 1.35; }
+    .evidence { display: grid; grid-template-columns: 1.15fr .85fr; gap: 28px; align-items: start; }
+    .evidence img {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: white;
+      box-shadow: 0 10px 30px rgba(23,33,43,.09);
+    }
+    .note {
+      background: var(--green-soft);
+      border-left: 5px solid var(--green);
+      padding: 16px 18px;
+      border-radius: 8px;
+      color: #28483a;
+    }
+    .trace {
+      background: #17212b;
+      color: #edf3f1;
+      border-radius: 10px;
+      padding: 18px 20px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 14px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+    .slide-num {
+      position: absolute;
+      right: 72px;
+      bottom: 28px;
+      color: #91a0aa;
+      font-size: 13px;
+    }
+    .links { margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap; }
+    .links a {
+      color: var(--green);
+      text-decoration: none;
+      border: 1px solid #a8cabb;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    @media (max-width: 800px) {
+      .slide { min-height: auto; padding: 40px 24px; }
+      h1 { font-size: 44px; } h2 { font-size: 34px; }
+      .grid-2, .grid-3, .evidence { grid-template-columns: 1fr; }
+      .flow { grid-template-columns: 1fr; }
+      .flow .arrow { transform: rotate(90deg); }
+      .slide-num { right: 24px; }
+    }
+    @media print {
+      body { background: white; }
+      .deck { max-width: none; }
+      .slide { min-height: 720px; }
+    }
+  </style>
+</head>
+<body>
+<main class="deck">
+
+  <section class="slide hero">
+    <div>
+      <div class="eyebrow">Agentic Loops for PMs · Final Project</div>
+      <h1>Cortex is a PM chief-of-staff with a human in control.</h1>
+      <p class="lead">It turns project evidence into a grounded status draft and bounded story proposals, then stops for review. It has no publishing tool.</p>
+    </div>
+    <div class="meta">
+      <strong>Mahima Singh</strong>
+      <span>November 2026</span>
+      <span>Current rung: assisted</span>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">The promise</div>
+    <h2>Draft less. Decide more. Never post by accident.</h2>
+    <div class="grid-3">
+      <div class="card accent">
+        <div class="metric">1</div>
+        <div class="metric-label">bounded task</div>
+        <p>Retrieve project and activity evidence for a PM's named status request.</p>
+      </div>
+      <div class="card accent">
+        <div class="metric">2</div>
+        <div class="metric-label">independent checks</div>
+        <p>A critic tests traceability and policy before a draft reaches the PM.</p>
+      </div>
+      <div class="card accent">
+        <div class="metric">0</div>
+        <div class="metric-label">publishing tools</div>
+        <p>Completed drafts are held; no update or story is published automatically.</p>
+      </div>
+    </div>
+    <div class="links">
+      <a href="06-autonomy/prototype.md">Prototype</a>
+      <a href="02-loop-design/loop-spec.md">Loop Spec</a>
+      <a href="05-bounds-evals/bounds-and-evals.md">Bounds & Evals</a>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">Agent line</div>
+    <h2>Context and execution are bounded; judgment stays human.</h2>
+    <div class="grid-2">
+      <div class="card accent">
+        <h3>Cortex can</h3>
+        <ul>
+          <li>Pull project state and recent activity</li>
+          <li>Retrieve roadmap, norms, and past updates</li>
+          <li>Draft an update from source evidence</li>
+          <li>Propose up to 10 stories for review</li>
+          <li>Run an independent critic and retry twice</li>
+        </ul>
+      </div>
+      <div class="card warn">
+        <h3>Human owns</h3>
+        <ul>
+          <li>Relevant context and tone</li>
+          <li>Commitments and risk flags</li>
+          <li>Escalation and story prioritization</li>
+          <li>Final review and posting</li>
+          <li>Company-wide approval</li>
+        </ul>
+      </div>
+    </div>
+    <p class="note"><strong>Hardest call:</strong> company-wide approval stays above the line because high blast radius outweighs convenience.</p>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">Loop architecture</div>
+    <h2>One drafter. One independent critic. One PM checkpoint.</h2>
+    <div class="flow">
+      <div class="card blue"><h3>PM task</h3><p>Hook-fired status request for one named project.</p></div>
+      <div class="arrow">→</div>
+      <div class="card accent"><h3>Cortex</h3><p>Retrieve evidence, draft update, queue stories.</p></div>
+      <div class="arrow">→</div>
+      <div class="card blue"><h3>Validator</h3><p>Check grounding, traceability, and policy.</p></div>
+      <div class="arrow">→</div>
+      <div class="card warn"><h3>Human review</h3><p>Accept, adjust, or escalate. Nothing posts.</p></div>
+    </div>
+    <p class="note"><strong>Fail behavior:</strong> missing source, missing firm date, jailbreak, or revision cap stops the run and escalates.</p>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">Evidence · M2</div>
+    <h2>The happy path completes without publishing.</h2>
+    <div class="evidence">
+      <img src="06-autonomy/m2-happy-path.png" alt="M2 happy path terminal screenshot">
+      <div>
+        <div class="card accent">
+          <h3>Proved</h3>
+          <ul>
+            <li>Project and activity retrieved</li>
+            <li>Activation: 41% → 43%</li>
+            <li>PRs #820, #823 and issue #825 grounded</li>
+            <li>3 stories queued for review</li>
+          </ul>
+        </div>
+        <p class="note"><strong>Final state:</strong> draft held for human review. Nothing was posted.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">Evidence · M3 to M5</div>
+    <h2>Failure is a designed feature.</h2>
+    <div class="grid-3">
+      <div class="card warn">
+        <h3>M3 · Critic rejection</h3>
+        <p>The critic rejected unsupported metrics and dates, then hit the 2-revision cap.</p>
+        <img src="06-autonomy/m3-critic-rejection.png" alt="M3 critic rejection screenshot" style="width:100%;border-radius:8px;margin-top:12px">
+      </div>
+      <div class="card warn">
+        <h3>M4 · Missing source</h3>
+        <p>P-HALO was absent. Cortex stopped and escalated instead of inventing a GA date.</p>
+        <img src="06-autonomy/m4-missing-source.png" alt="M4 missing source screenshot" style="width:100%;border-radius:8px;margin-top:12px">
+      </div>
+      <div class="card warn">
+        <h3>M5 · Preflight and bounds</h3>
+        <p>Jailbreak requests were flagged before model or tool calls; the 2-turn cap stopped a stuck run without a draft.</p>
+        <img src="06-autonomy/m5-jailbreak-preflight.png" alt="M5 jailbreak preflight flags the request and escalates without model or tool calls" style="width:100%;max-height:220px;object-fit:contain;object-position:left;border-radius:8px;margin-top:8px;background:#17212b">
+        <img src="06-autonomy/m5-iteration-cap.png" alt="M5 iteration cap escalates without producing a draft" style="width:100%;max-height:180px;object-fit:contain;object-position:left;border-radius:8px;margin-top:8px;background:#17212b">
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">Evidence · M6</div>
+    <h2>The end-to-end run passes and pauses at HITL.</h2>
+    <div class="evidence">
+      <img src="06-autonomy/m6-end-to-end-clean.png" alt="M6 live end-to-end run screenshot">
+      <div>
+        <div class="grid-2" style="gap:12px">
+          <div class="card accent"><div class="metric">$0.0019</div><div class="metric-label">run cost</div></div>
+          <div class="card accent"><div class="metric">3</div><div class="metric-label">stories held</div></div>
+        </div>
+        <p>The <code>gpt-4o</code> critic passed. The status update and proposed stories stopped at human review.</p>
+        <p class="note"><strong>Not yet proven:</strong> live production behavior and PM acceptance of the proposed stories.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">Bounds and evals</div>
+    <h2>Hard limits convert confidence into an operating contract.</h2>
+    <table>
+      <thead><tr><th>Bound</th><th>Limit</th><th>Failure behavior</th></tr></thead>
+      <tbody>
+        <tr><td>Turns</td><td>8 per run</td><td>Stop and escalate</td></tr>
+        <tr><td>Deadline</td><td>90 seconds</td><td>Stop before model/tool calls</td></tr>
+        <tr><td>Cost</td><td>$0.50 per run</td><td>Reserve before calls; escalate</td></tr>
+        <tr><td>Output</td><td>2,048 completion tokens</td><td>Cap each model response</td></tr>
+        <tr><td>Backlog</td><td>10 stories</td><td>Queue no more than the cap</td></tr>
+        <tr><td>Permissions</td><td>Read-only; no publish tool</td><td>Hold for human review</td></tr>
+      </tbody>
+    </table>
+    <p class="note"><strong>Production gap:</strong> provider-side billing control, JIT authorization, and control-plane revocation remain external integrations.</p>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">Trust Ladder</div>
+    <h2>Today: assisted. Next rung: supervised.</h2>
+    <div class="grid-2">
+      <div class="card accent">
+        <h3>Eval gate over four weeks</h3>
+        <ul>
+          <li>All 5 offline replay cases pass on every change</li>
+          <li>EV-1–EV-4: ≥95% across at least 20 assisted runs</li>
+          <li>EV-5: zero unsafe actions</li>
+          <li>Three ROI targets met</li>
+        </ul>
+      </div>
+      <div class="card blue">
+        <h3>Clean incident window</h3>
+        <ul>
+          <li>Zero unauthorized posts</li>
+          <li>Zero confidential exposures</li>
+          <li>100% incidents and near-misses logged</li>
+          <li>Every incident resolved; Mahima approves widening</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">Ship plan and governance</div>
+    <h2>Deploy narrow, measure behavior, make rollback easy.</h2>
+    <div class="grid-3">
+      <div class="card accent">
+        <h3>Runtime</h3>
+        <p>Serverless, event-triggered Hook. Runs only when a PM requests a draft.</p>
+      </div>
+      <div class="card blue">
+        <h3>Operator</h3>
+        <p>Mahima Singh is named owner. If unavailable, disable the Hook and hold drafts.</p>
+      </div>
+      <div class="card warn">
+        <h3>Rollback</h3>
+        <p>Disable the Hook, drop the dial, revert prompt/config, revoke credentials.</p>
+      </div>
+    </div>
+    <table style="margin-top:24px">
+      <thead><tr><th>ROI metric</th><th>Target</th><th>Measurement</th></tr></thead>
+      <tbody>
+        <tr><td>Outcome</td><td>≥90% accepted without material rewrite</td><td>20 run IDs + PM review outcomes</td></tr>
+        <tr><td>Cost-to-serve</td><td>≥30% faster than manual; ≤$0.05 accepted draft</td><td>Review timestamps + run cost</td></tr>
+        <tr><td>Trust incidents</td><td>0 unauthorized posts or leaks</td><td>Timestamped incident log</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="slide">
+    <div class="eyebrow">Forward strategy</div>
+    <h2>The next move is a read-only connector, not a posting button.</h2>
+    <div class="grid-2">
+      <div class="card accent">
+        <h3>Next capability</h3>
+        <ul>
+          <li>Add a live read-only project connector</li>
+          <li>Pass project-scope and confidential-redaction evals</li>
+          <li>Preserve the human review checkpoint</li>
+          <li>Keep write and publish tools unavailable</li>
+        </ul>
+      </div>
+      <div class="card warn">
+        <h3>My biggest build insight</h3>
+        <p>An agent can go wrong, so boundaries come before scale. The critic, caps, and absence of a publishing tool are the product—not optional infrastructure.</p>
+      </div>
+    </div>
+    <div class="links">
+      <a href="06-autonomy/build-insights.md">Build Insights</a>
+      <a href="06-autonomy/production-and-autonomy.md">Production & Autonomy</a>
+      <a href="03-orchestration/orchestration-map.md">Orchestration Map</a>
+      <a href="01-agent-line/agent-line-map.md">Agent Line Map</a>
+    </div>
+  </section>
+
+</main>
+</body>
+</html>
